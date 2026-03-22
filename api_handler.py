@@ -1,6 +1,6 @@
 # Receives the formatted message from input_handler and sends it to the OpenAI API.
 # Returns the API response to be handled by output_handler.
-# -- Jeremiah Stohel
+# -- Zerric Stewart
 
 from openai import OpenAI
 
