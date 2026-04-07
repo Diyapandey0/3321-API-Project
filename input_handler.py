@@ -3,7 +3,20 @@
 #-- Jeremiah Stohel
 def FormatInput():
     user_text = input("Please enter your prompt: ")
+    system_input = input("Please enter any system instructions (or press Enter for default): ")
+    temperature = input("Please enter the desired temperature (0 - 2): ")
+    try:
+        temperature = float(temperature) if temperature else 1.0
+    except ValueError:
+        temperature = 1.0
+
+
+    messages = []
+    if system_input:
+        messages.append({"role": "system", "content": system_input})
+    messages.append({"role": "user", "content": user_text})
+
     return {
-        "role": "user",
-        "content": user_text
+        "messages": messages,
+        "temperature": temperature
     }

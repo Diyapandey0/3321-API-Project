@@ -8,6 +8,7 @@ def sendInput(message):
     client = OpenAI()  # uses OPENAI_API_KEY environment variable by default
     response = client.chat.completions.create(
         model="gpt-4o",
-        messages=[message]  # message is already {"role": "user", "content": "..."}
+        messages=message["messages"],
+        temperature=message["temperature"]  # message is already {"role": "user", "content": "..."}
     )
     return response
