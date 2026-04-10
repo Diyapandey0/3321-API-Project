@@ -10,13 +10,25 @@ from api_handler import sendInput
 from output_handler import receiveInput
 
 def main():
-# on run it will ask for input and create a json.
-    inputjson = FormatInput() 
-# send message to openai using the json file made earlier.
-    response = sendInput(inputjson)
-# accept the response and print it out to the user.
-    receiveInput(response)
+    conversation_history = None
+    while True:    
+    # on run it will ask for input and create a json.
+        inputjson = FormatInput(conversation_history) 
+    # send message to openai using the json file made earlier.
+        response = sendInput(inputjson)
+    # accept the response and print it out to the user.
+        assistant_response = receiveInput(response)
 
-if __name__ == "__main__":
-    main()
+        if assistant_response is None:
+            continue
+
+        inputjson["messages"].append({"role": "assistant", "content": assistant_response})
+        conversation_history = inputjson
+
+        continue_chat = input("Continue? (y/n): ").lower()
+        if continue_chat != 'y':
+            print("Exiting chat. Goodbye!")
+            break
+    if __name__ == "__main__":
+        main()
 
