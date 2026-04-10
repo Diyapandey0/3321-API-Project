@@ -9,6 +9,7 @@ def sendInput(message):
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=message["messages"],
-        temperature=message["temperature"]  # message is already {"role": "user", "content": "..."}
+        temperature=message["temperature"],  # message is already {"role": "user", "content": "..."}
+        stream=True
     )
     return response

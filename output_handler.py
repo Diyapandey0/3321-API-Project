@@ -3,7 +3,11 @@
 
 def receiveInput(response):
     try:
-        reply = response.choices[0].message.content
-        print("Response:", reply)
+        print("Response: ", end="", flush=True)
+        for chunk in response:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                print(delta, end="", flush=True)
+        print()
     except (AttributeError, IndexError, TypeError) as e:
         print(f"Error: Could not read the response. Details: {e}")
