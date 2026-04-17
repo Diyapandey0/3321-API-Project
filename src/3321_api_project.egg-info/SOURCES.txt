@@ -1,0 +1,12 @@
+README.md
+pyproject.toml
+src/3321_api_project.egg-info/PKG-INFO
+src/3321_api_project.egg-info/SOURCES.txt
+src/3321_api_project.egg-info/dependency_links.txt
+src/3321_api_project.egg-info/entry_points.txt
+src/3321_api_project.egg-info/requires.txt
+src/3321_api_project.egg-info/top_level.txt
+src/api_chat/api_handler.py
+src/api_chat/input_handler.py
+src/api_chat/main.py
+src/api_chat/output_handler.py

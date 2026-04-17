@@ -5,9 +5,9 @@
 
 
 from openai import OpenAI
-from input_handler import FormatInput
-from api_handler import sendInput
-from output_handler import receiveInput
+from api_chat.input_handler import FormatInput
+from api_chat.api_handler import sendInput
+from api_chat.output_handler import receiveInput
 
 def main():
     conversation_history = None
@@ -29,6 +29,7 @@ def main():
         if continue_chat != 'y':
             print("Exiting chat. Goodbye!")
             break
-    if __name__ == "__main__":
-        main()
+
+if __name__ == "__main__":
+    main()
 
