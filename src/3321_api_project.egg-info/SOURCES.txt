@@ -10,3 +10,7 @@ src/api_chat/api_handler.py
 src/api_chat/input_handler.py
 src/api_chat/main.py
 src/api_chat/output_handler.py
+tests/test_api_handler.py
+tests/test_input_handler.py
+tests/test_main.py
+tests/test_output_handler.py
