@@ -9,7 +9,10 @@ src/3321_api_project.egg-info/top_level.txt
 src/api_chat/api_handler.py
 src/api_chat/input_handler.py
 src/api_chat/main.py
+<<<<<<< HEAD
 src/api_chat/models.py
+=======
+>>>>>>> edd8ffb7eb941cb46671f4387b7e763f90cd6893
 src/api_chat/output_handler.py
 tests/test_api_handler.py
 tests/test_input_handler.py
