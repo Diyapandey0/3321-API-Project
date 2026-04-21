@@ -8,10 +8,16 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 
-from api_chat.models import NewChatRequest, ContinueChatRequest, ConversationHistory, Message
-from api_chat.input_handler import format_new_chat, format_continued_chat
-from api_chat.api_handler import send_input
-from api_chat.output_handler import stream_response
+try:
+    from .models import NewChatRequest, ContinueChatRequest
+    from .input_handler import format_new_chat, format_continued_chat
+    from .api_handler import send_input
+    from .output_handler import stream_response
+except ImportError:
+    from api_chat.models import NewChatRequest, ContinueChatRequest
+    from api_chat.input_handler import format_new_chat, format_continued_chat
+    from api_chat.api_handler import send_input
+    from api_chat.output_handler import stream_response
 
 app = FastAPI(
     title="API Chat",
@@ -32,7 +38,7 @@ async def new_chat(request: NewChatRequest) -> StreamingResponse:
     """
     try:
         payload = format_new_chat(request)
-        openai_stream = send_input(payload)
+        openai_stream = await send_input(payload)
         return StreamingResponse(stream_response(openai_stream), media_type="text/plain")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -50,7 +56,7 @@ async def continue_chat(request: ContinueChatRequest) -> StreamingResponse:
     """
     try:
         payload = format_continued_chat(request)
-        openai_stream = send_input(payload)
+        openai_stream = await send_input(payload)
         return StreamingResponse(stream_response(openai_stream), media_type="text/plain")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

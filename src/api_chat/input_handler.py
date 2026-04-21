@@ -2,7 +2,7 @@
 # input() calls are gone — data now arrives via FastAPI request bodies instead.
 # -- Jeremiah Stohel (original) | adapted for FastAPI
 
-from api_chat.models import NewChatRequest, ContinueChatRequest, ConversationHistory, Message
+from .models import NewChatRequest, ContinueChatRequest
 
 
 def format_new_chat(request: NewChatRequest) -> dict:

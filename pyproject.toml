@@ -33,9 +33,9 @@ dev = [
 # UV workspace/tool config
 [tool.uv]
 default-groups = ["dev"]        # always install dev group by default
-python = "3.11"                 # pin the python version uv uses
 
 # Pytest config — saves needing a separate pytest.ini
 [tool.pytest.ini_options]
 asyncio_mode = "auto"           # needed for pytest-asyncio
 testpaths = ["tests"]
+pythonpath = ["src"]

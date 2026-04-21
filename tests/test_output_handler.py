@@ -1,5 +1,7 @@
+import pytest
 from unittest.mock import MagicMock
-from api_chat.output_handler import receiveInput
+
+from api_chat.output_handler import stream_response
 
 
 def make_fake_chunk(content):
@@ -8,58 +10,75 @@ def make_fake_chunk(content):
     return chunk
 
 
-def test_receive_input_prints_streamed_content(capsys):
-    """receiveInput should print each non-None delta in order."""
-    chunks = [make_fake_chunk("Hello"), make_fake_chunk(" world")]
-
-    receiveInput(iter(chunks))
-
-    captured = capsys.readouterr()
-    assert "Hello world" in captured.out
+async def collect_output(response):
+    collected = []
+    async for part in stream_response(response):
+        collected.append(part)
+    return collected
 
 
-def test_receive_input_skips_none_deltas(capsys):
-    """receiveInput should skip chunks where delta content is None."""
-    chunks = [make_fake_chunk("Hello"), make_fake_chunk(None), make_fake_chunk("!")]
+@pytest.mark.asyncio
+async def test_stream_response_yields_streamed_content():
+    """stream_response should yield each non-None delta in order."""
 
-    receiveInput(iter(chunks))
+    async def fake_response():
+        for chunk in [make_fake_chunk("Hello"), make_fake_chunk(" world")]:
+            yield chunk
 
-    captured = capsys.readouterr()
-    assert "Hello!" in captured.out
-    assert "None" not in captured.out
-
-
-def test_receive_input_returns_none():
-    """receiveInput has no return statement, so it always returns None."""
-    result = receiveInput(iter([]))
-
-    assert result is None
+    assert await collect_output(fake_response()) == ["Hello", " world"]
 
 
-def test_receive_input_handles_attribute_error(capsys):
-    """receiveInput should catch AttributeError and print an error message."""
-    chunk = MagicMock(spec=[])  # spec=[] means no attributes — accessing .choices raises AttributeError
+@pytest.mark.asyncio
+async def test_stream_response_skips_none_deltas():
+    """stream_response should skip chunks where delta content is None."""
 
-    receiveInput(iter([chunk]))
+    async def fake_response():
+        for chunk in [make_fake_chunk("Hello"), make_fake_chunk(None), make_fake_chunk("!")]:
+            yield chunk
 
-    captured = capsys.readouterr()
-    assert "Error" in captured.out
+    assert await collect_output(fake_response()) == ["Hello", "!"]
 
 
-def test_receive_input_handles_index_error(capsys):
-    """receiveInput should catch IndexError when choices list is empty."""
+@pytest.mark.asyncio
+async def test_stream_response_returns_no_chunks_for_empty_stream():
+    """stream_response should yield nothing for an empty stream."""
+
+    async def fake_response():
+        if False:
+            yield None
+
+    assert await collect_output(fake_response()) == []
+
+
+@pytest.mark.asyncio
+async def test_stream_response_handles_attribute_error():
+    """stream_response should yield an error marker on AttributeError."""
+    chunk = MagicMock(spec=[])
+
+    async def fake_response():
+        yield chunk
+
+    result = await collect_output(fake_response())
+    assert len(result) == 1
+    assert result[0].startswith("\n[Stream error:")
+
+
+@pytest.mark.asyncio
+async def test_stream_response_handles_index_error():
+    """stream_response should yield an error marker when choices list is empty."""
     chunk = MagicMock()
-    chunk.choices = []  # choices[0] will raise IndexError
+    chunk.choices = []
 
-    receiveInput(iter([chunk]))
+    async def fake_response():
+        yield chunk
 
-    captured = capsys.readouterr()
-    assert "Error" in captured.out
+    result = await collect_output(fake_response())
+    assert len(result) == 1
+    assert result[0].startswith("\n[Stream error:")
 
 
-def test_receive_input_handles_type_error(capsys):
-    """receiveInput should catch TypeError when response is not iterable."""
-    receiveInput(None)  # iterating None raises TypeError
-
-    captured = capsys.readouterr()
-    assert "Error" in captured.out
+@pytest.mark.asyncio
+async def test_stream_response_propagates_non_async_iterable_error():
+    """stream_response should fail when given a non-async iterable response."""
+    with pytest.raises(TypeError):
+        await collect_output(None)
