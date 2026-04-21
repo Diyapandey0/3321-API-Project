@@ -1,15 +1,15 @@
-# Receives the formatted message from input_handler and sends it to the OpenAI API.
-# Returns the API response to be handled by output_handler.
-# -- Zerric Stewart
+# Receives the formatted message payload and sends it to the OpenAI API.
+# Logic is unchanged from the CLI version — only type hints added.
+# -- Zerric Stewart (original) | adapted for FastAPI
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 
-def sendInput(message):
-    client = OpenAI()  # uses OPENAI_API_KEY environment variable by default
-    response = client.chat.completions.create(
+async def send_input(message: dict):
+    client = AsyncOpenAI()
+    response = await client.chat.completions.create(
         model="gpt-4o",
         messages=message["messages"],
-        temperature=message["temperature"],  # message is already {"role": "user", "content": "..."}
-        stream=True
+        temperature=message["temperature"],
+        stream=True,
     )
     return response

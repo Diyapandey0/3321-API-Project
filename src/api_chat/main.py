@@ -1,35 +1,70 @@
-# This is a simple format for what i think the project would want to do if
-#  you disagree feel free to change it just please leave comments on what you 
-# changed , why, and your name so we can keep track of who did what and why.
-#-- Jeremiah Stohel
+# FastAPI entry point — replaces the CLI while-loop in the original main.py.
+# Two routes mirror the two branches of the original FormatInput():
+#   POST /chat        → new conversation
+#   POST /chat/continue → continue an existing conversation
+# -- Jeremiah Stohel (original) | adapted for FastAPI
+
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
+
+from api_chat.models import NewChatRequest, ContinueChatRequest, ConversationHistory, Message
+from api_chat.input_handler import format_new_chat, format_continued_chat
+from api_chat.api_handler import send_input
+from api_chat.output_handler import stream_response
+
+app = FastAPI(
+    title="API Chat",
+    description="Streaming OpenAI chat via FastAPI",
+    version="0.1.0",
+)
 
 
-from openai import OpenAI
-from api_chat.input_handler import FormatInput
-from api_chat.api_handler import sendInput
-from api_chat.output_handler import receiveInput
+@app.post("/chat", summary="Start a new conversation")
+async def new_chat(request: NewChatRequest) -> StreamingResponse:
+    """
+    Accepts a user prompt (plus optional system instructions and temperature)
+    and streams the assistant's reply token-by-token.
 
-def main():
-    conversation_history = None
-    while True:    
-    # on run it will ask for input and create a json.
-        inputjson = FormatInput(conversation_history) 
-    # send message to openai using the json file made earlier.
-        response = sendInput(inputjson)
-    # accept the response and print it out to the user.
-        assistant_response = receiveInput(response)
+    After the stream completes, reconstruct ConversationHistory on the client
+    by appending {"role": "user", "content": request.user_text} and the
+    accumulated assistant text, then pass it to POST /chat/continue.
+    """
+    try:
+        payload = format_new_chat(request)
+        openai_stream = send_input(payload)
+        return StreamingResponse(stream_response(openai_stream), media_type="text/plain")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-        if assistant_response is None:
-            continue
 
-        inputjson["messages"].append({"role": "assistant", "content": assistant_response})
-        conversation_history = inputjson
+@app.post("/chat/continue", summary="Continue an existing conversation")
+async def continue_chat(request: ContinueChatRequest) -> StreamingResponse:
+    """
+    Accepts the full conversation history plus a new user message and
+    streams the next assistant reply.
 
-        continue_chat = input("Continue? (y/n): ").lower()
-        if continue_chat != 'y':
-            print("Exiting chat. Goodbye!")
-            break
+    The client is responsible for maintaining history between turns:
+    append {"role": "assistant", "content": <accumulated stream>} to
+    conversation_history.messages before the next request.
+    """
+    try:
+        payload = format_continued_chat(request)
+        openai_stream = send_input(payload)
+        return StreamingResponse(stream_response(openai_stream), media_type="text/plain")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/health", summary="Health check")
+async def health() -> dict:
+    return {"status": "ok"}
+
+
+def start():
+    """Entry point wired to the `serve` script in pyproject.toml."""
+    uvicorn.run("api_chat.main:app", host="0.0.0.0", port=8000, reload=True)
+
 
 if __name__ == "__main__":
-    main()
-
+    start()

@@ -1,22 +1,41 @@
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "3321-api-project"
+name = "api-chat"
 version = "0.1.0"
-description = "OpenAI API Chat Application"
-requires-python = ">=3.13"
-dependencies = ["openai>=1.0.0"]
-
-[tool.setuptools]
-packages = ["api_chat"]
-
-[tool.setuptools.package-dir]
-"" = "src"
-
-[project.optional-dependencies]
-dev = ["pytest>=7.0", "pytest-asyncio>=0.21.0"]
+description = "A FastAPI-based chat interface powered by OpenAI"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "openai>=1.54.0",
+    "python-dotenv>=1.0.0",
+]
 
 [project.scripts]
-api-chat = "api_chat.main:main"
+serve = "api_chat.main:start"
+
+# Replaces hatchling entirely — no extra dependency needed
+[build-system]
+requires = ["uv-build>=0.7"]
+build-backend = "uv_build"
+
+# Source layout — tells uv_build where your package lives
+[tool.uv.build-backend]
+module-name = "api_chat"
+
+# Dev dependencies as a proper group (PEP 735)
+[dependency-groups]
+dev = [
+    "httpx>=0.27.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+# UV workspace/tool config
+[tool.uv]
+default-groups = ["dev"]        # always install dev group by default
+python = "3.11"                 # pin the python version uv uses
+
+# Pytest config — saves needing a separate pytest.ini
+[tool.pytest.ini_options]
+asyncio_mode = "auto"           # needed for pytest-asyncio
+testpaths = ["tests"]

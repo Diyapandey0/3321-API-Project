@@ -1,29 +1,37 @@
+# Formats incoming request data into the message dict expected by api_handler.
+# input() calls are gone — data now arrives via FastAPI request bodies instead.
+# -- Jeremiah Stohel (original) | adapted for FastAPI
 
-#ask for an input then formats it into a json file to be sent to the api handler.
-#-- Jeremiah Stohel
-def FormatInput(conversation_history=None):
-    if conversation_history is None:
-        conversation_history = []
-        user_text = input("Please enter your prompt: ")
-        system_input = input("Please enter any system instructions (or press Enter for default): ")
-        temperature = input("Please enter the desired temperature (0 - 2): ")
-        try:
-            temperature = float(temperature) if temperature else 1.0
-        except ValueError:
-            temperature = 1.0
+from api_chat.models import NewChatRequest, ContinueChatRequest, ConversationHistory, Message
 
-        messages = []
-        if system_input:
-            messages.append({"role": "system", "content": system_input})
-        messages.append({"role": "user", "content": user_text})
 
-    else:
-        messages = conversation_history["messages"].copy()
-        temperature = conversation_history["temperature"]
-        user_text = input("Please enter your prompt: ")
-        messages.append({"role": "user", "content": user_text})
+def format_new_chat(request: NewChatRequest) -> dict:
+    """
+    Builds the message payload for a brand-new conversation.
+    Mirrors the `if conversation_history is None` branch of the original FormatInput().
+    """
+    messages = []
+
+    if request.system_input:
+        messages.append({"role": "system", "content": request.system_input})
+
+    messages.append({"role": "user", "content": request.user_text})
 
     return {
         "messages": messages,
-        "temperature": temperature
+        "temperature": request.temperature,
+    }
+
+
+def format_continued_chat(request: ContinueChatRequest) -> dict:
+    """
+    Appends the new user message to an existing conversation history.
+    Mirrors the `else` branch of the original FormatInput().
+    """
+    messages = [m.model_dump() for m in request.conversation_history.messages]
+    messages.append({"role": "user", "content": request.user_text})
+
+    return {
+        "messages": messages,
+        "temperature": request.conversation_history.temperature,
     }

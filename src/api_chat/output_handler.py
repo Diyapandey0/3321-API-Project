@@ -1,13 +1,17 @@
-# Accepts the API response and prints the LLM's reply to the user.
-# -- Diya Pandey
+# Converts the OpenAI streaming response into an async generator that
+# FastAPI's StreamingResponse can consume directly.
+# Print statements are gone — the caller (main.py) owns the HTTP response.
+# -- Diya Pandey (original) | adapted for FastAPI
 
-def receiveInput(response):
-    try:
-        print("Response: ", end="", flush=True)
-        for chunk in response:
+from typing import AsyncGenerator
+
+
+async def stream_response(response) -> AsyncGenerator[str, None]:
+    async for chunk in response:  # non-blocking
+        try:
             delta = chunk.choices[0].delta.content
             if delta:
-                print(delta, end="", flush=True)
-        print()
-    except (AttributeError, IndexError, TypeError) as e:
-        print(f"Error: Could not read the response. Details: {e}")
+                yield delta
+        except (AttributeError, IndexError, TypeError) as e:
+            yield f"\n[Stream error: {e}]"
+            return

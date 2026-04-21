@@ -1,95 +1,89 @@
-from unittest.mock import patch
 import pytest
-from api_chat.input_handler import FormatInput
+from api_chat.input_handler import format_new_chat, format_continued_chat
+from api_chat.models import NewChatRequest, ContinueChatRequest, ConversationHistory, Message
 
-def test_new_conversation_basic():
-    """No history: should build messages from scratch with user + system."""
-    with patch("builtins.input", side_effect=[
-        "Hello AI",       # user_text
-        "Be concise",     # system_input
-        "0.7"             # temperature
-    ]):
-        result = FormatInput()
+
+# ── format_new_chat ────────────────────────────────────────────────────────────
+
+def test_new_chat_includes_system_and_user():
+    """System input present: system message should come first, then user."""
+    request = NewChatRequest(
+        user_text="Hello AI",
+        system_input="Be concise",
+        temperature=0.7,
+    )
+    result = format_new_chat(request)
 
     assert result["messages"][0] == {"role": "system", "content": "Be concise"}
     assert result["messages"][1] == {"role": "user", "content": "Hello AI"}
     assert result["temperature"] == 0.7
 
-def test_new_conversation_no_system_input():
-    """If user skips system instructions, no system message should be added."""
-    with patch("builtins.input", side_effect=[
-        "Hello AI",   # user_text
-        "",           # system_input skipped
-        "1.0"         # temperature
-    ]):
-        result = FormatInput()
+
+def test_new_chat_no_system_input():
+    """Omitting system_input should produce only a user message."""
+    request = NewChatRequest(user_text="Hello AI")
+    result = format_new_chat(request)
 
     roles = [m["role"] for m in result["messages"]]
     assert "system" not in roles
     assert result["messages"][0] == {"role": "user", "content": "Hello AI"}
-def test_new_conversation_invalid_temperature_defaults_to_1():
-    """Non-numeric temperature input should fall back to 1.0."""
-    with patch("builtins.input", side_effect=[
-        "Hello AI",
-        "",
-        "hot"          # invalid temperature
-    ]):
-        result = FormatInput()
 
-    assert result["temperature"] == 1.0
-    
-def test_new_conversation_empty_temperature_defaults_to_1():
-    """Pressing Enter on temperature should default to 1.0."""
-    with patch("builtins.input", side_effect=[
-        "Hello AI",
-        "",
-        ""             # empty temperature
-    ]):
-        result = FormatInput()
+
+def test_new_chat_default_temperature():
+    """Temperature should default to 1.0 when not supplied."""
+    request = NewChatRequest(user_text="Hello AI")
+    result = format_new_chat(request)
 
     assert result["temperature"] == 1.0
 
 
-# ── Existing conversation history (follow-up message) ─────────────────────────
+def test_new_chat_custom_temperature():
+    """Explicitly supplied temperature should be preserved in the payload."""
+    request = NewChatRequest(user_text="Hello AI", temperature=0.3)
+    result = format_new_chat(request)
 
-def test_existing_history_appends_user_message():
-    """With history: should copy existing messages and append new user message."""
-    history = {
-        "messages": [
-            {"role": "system", "content": "Be concise"},
-            {"role": "user", "content": "First message"},
-            {"role": "assistant", "content": "First reply"}
+    assert result["temperature"] == 0.3
+
+
+# ── format_continued_chat ──────────────────────────────────────────────────────
+
+def test_continued_chat_appends_user_message():
+    """Existing history: new user message should be appended at the end."""
+    history = ConversationHistory(
+        messages=[
+            Message(role="system", content="Be concise"),
+            Message(role="user", content="First message"),
+            Message(role="assistant", content="First reply"),
         ],
-        "temperature": 0.5
-    }
-    with patch("builtins.input", return_value="Follow up question"):
-        result = FormatInput(history)
+        temperature=0.5,
+    )
+    request = ContinueChatRequest(conversation_history=history, user_text="Follow up")
+    result = format_continued_chat(request)
 
     assert len(result["messages"]) == 4
-    assert result["messages"][-1] == {"role": "user", "content": "Follow up question"}
+    assert result["messages"][-1] == {"role": "user", "content": "Follow up"}
 
-def test_existing_history_preserves_temperature():
-    """With history: temperature should be carried over, not re-asked."""
-    history = {
-        "messages": [{"role": "user", "content": "Hi"}],
-        "temperature": 1.5
-    }
 
-    with patch("builtins.input", return_value="Next message"):
-        result = FormatInput(history)
+def test_continued_chat_preserves_temperature():
+    """Temperature should be taken from conversation history, not re-asked."""
+    history = ConversationHistory(
+        messages=[Message(role="user", content="Hi")],
+        temperature=1.5,
+    )
+    request = ContinueChatRequest(conversation_history=history, user_text="Next message")
+    result = format_continued_chat(request)
 
     assert result["temperature"] == 1.5
 
-def test_existing_history_does_not_mutate_original():
-    """FormatInput should not modify the original conversation history dict."""
-    history = {
-        "messages": [{"role": "user", "content": "Hi"}],
-        "temperature": 1.0
-    }
-    original_length = len(history["messages"])
 
-    with patch("builtins.input", return_value="Follow up"):
-        FormatInput(history)
+def test_continued_chat_does_not_mutate_history():
+    """format_continued_chat should not modify the original ConversationHistory object."""
+    history = ConversationHistory(
+        messages=[Message(role="user", content="Hi")],
+        temperature=1.0,
+    )
+    original_length = len(history.messages)
+    request = ContinueChatRequest(conversation_history=history, user_text="Follow up")
+    format_continued_chat(request)
 
-    # Original history should be unchanged
-    assert len(history["messages"]) == original_length
+    assert len(history.messages) == original_length
