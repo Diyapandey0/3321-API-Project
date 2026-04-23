@@ -16,3 +16,4 @@ build/
 
 # Pytest
 .pytest_cache/
+.coverage
