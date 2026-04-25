@@ -27,7 +27,7 @@ jobs:
       - name: Install flake8
         run: pip install flake8
       - name: Run flake8
-       run: flake8 src/ --max-line-length=100 --ignore=E501,E302,W292
+        run: flake8 src/ --max-line-length=100 --ignore=E501,E302,W292
 
   build:
     name: Build Docker Image
