@@ -52,7 +52,7 @@ jobs:
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$AWS_HOST "
+          ssh -o StrictHostKeyChecking=no -i key.pem admin@$AWS_HOST "
             docker stop api-chat || true &&
             docker rm api-chat || true &&
             docker run -d -p 8000:8000 --name api-chat \
