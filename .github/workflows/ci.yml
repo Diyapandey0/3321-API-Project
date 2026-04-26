@@ -52,9 +52,12 @@ jobs:
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
+          scp -o StrictHostKeyChecking=no -i key.pem -r . admin@$AWS_HOST:/home/admin/app
           ssh -o StrictHostKeyChecking=no -i key.pem admin@$AWS_HOST "
+            cd /home/admin/app &&
             docker stop api-chat || true &&
             docker rm api-chat || true &&
+            docker build -t api-chat . &&
             docker run -d -p 8000:8000 --name api-chat \
               -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
               api-chat
