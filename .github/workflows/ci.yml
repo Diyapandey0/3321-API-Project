@@ -58,7 +58,7 @@ jobs:
             docker stop api-chat || true &&
             docker rm api-chat || true &&
             docker build -t api-chat . &&
-            docker run -d -p 8000:8000 --name api-chat \
+            docker run -d -p 80:8000 --name api-chat \
               -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
               api-chat
           "
